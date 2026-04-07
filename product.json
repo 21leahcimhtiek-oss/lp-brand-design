@@ -1,0 +1,16 @@
+{
+  "id": "brand-design",
+  "name": "Brand Design",
+  "tagline": "AI-powered marketing solution",
+  "description": "AI-powered brand-design application built for Aurora Market. Modern, responsive design with SaaS monetization.",
+  "category": "marketing",
+  "tags": ["ai", "marketing"],
+  "url": "https://auroramarket.org/brand-design",
+  "demo": "https://21leahcimhtiek-oss.github.io/brand-design",
+  "repo": "https://github.com/21leahcimhtiek-oss/brand-design",
+  "stack": ["HTML", "CSS", "JavaScript"],
+  "status": "mvp",
+  "version": "1.0.0",
+  "author": "Aurora Rayes LLC",
+  "license": "MIT"
+}
