@@ -7,14 +7,84 @@ on:
     branches: [main]
 
 jobs:
-  static-checks:
+  validate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Detect package.json
+        id: project
+        run: |
+          if [ -f package.json ]; then
+            echo "has_package=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_package=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Node.js
+        if: steps.project.outputs.has_package == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        if: steps.project.outputs.has_package == 'true'
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then
+            yarn install --frozen-lockfile
+          elif [ -f package-lock.json ] || [ -f npm-shrinkwrap.json ]; then
+            npm ci || npm install
+          else
+            npm install
+          fi
+
+      - name: Detect scripts
+        if: steps.project.outputs.has_package == 'true'
+        id: scripts
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const pkg = require('./package.json');
+          const scripts = pkg.scripts || {};
+          const has = (name) => Object.prototype.hasOwnProperty.call(scripts, name);
+          fs.appendFileSync(
+            process.env.GITHUB_OUTPUT,
+            `lint=${has('lint')}\ncheck=${has('check')}\ntypecheck=${has('typecheck')}\ntest=${has('test')}\nbuild=${has('build')}\n`
+          );
+          NODE
+
+      - name: Run lint
+        if: steps.project.outputs.has_package == 'true' && steps.scripts.outputs.lint == 'true'
+        run: npm run lint
+
+      - name: Run check
+        if: steps.project.outputs.has_package == 'true' && steps.scripts.outputs.check == 'true'
+        run: npm run check
+
+      - name: Run typecheck
+        if: steps.project.outputs.has_package == 'true' && steps.scripts.outputs.typecheck == 'true'
+        run: npm run typecheck
+
+      - name: Run tests
+        if: steps.project.outputs.has_package == 'true' && steps.scripts.outputs.test == 'true'
+        run: npm run test
+
+      - name: Run build
+        if: steps.project.outputs.has_package == 'true' && steps.scripts.outputs.build == 'true'
+        run: npm run build
+
       - name: Validate required files
         run: |
           test -f index.html
           test -f README.md
           test -f .env.example
+          test -f vercel.json
+
       - name: Basic HTML sanity check
         run: grep -qi "<html" index.html
+
+      - name: Validate Vercel rewrite target
+        run: grep -q '"index.html"' vercel.json
